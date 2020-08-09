@@ -10,30 +10,38 @@ import RequestWithUser from "./interfaces/request.interface";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "./config/openapi.json";
 import errorMiddleware from "./middleware/error.middleware";
+import http from "http";
+import { WebSocketServer } from "./wsserver";
 
 /**
  * Express application wrapper class to centralize initialization
  */
 class App extends EventEmitter {
   public app: express.Application;
+  public server: http.Server;
+  public wsServer: WebSocketServer;
 
   constructor(controllers: Controller[]) {
     super();
 
     this.app = express();
 
+    this.server = http.createServer(this.app);
+
     this.initializeSecurity();
     this.initializeMiddlewares();
     this.initializeControllers(controllers);
     this.initializeErrorHandling();
     this.initializeApiDocs();
+
+    this.initializeWebSocket();
   }
 
   /**
    * Starts the application listener (web server)
    */
   public listen() {
-    this.app.listen(process.env.PORT, () => {
+    this.server.listen(process.env.PORT, () => {
       logger.info(`App listening on the port ${process.env.PORT}`);
     });
   }
@@ -88,6 +96,10 @@ class App extends EventEmitter {
     controllers.forEach((controller) => {
       this.app.use("/", controller.router);
     });
+  }
+
+  private initializeWebSocket() {
+    this.wsServer = new WebSocketServer(this.server);
   }
 
 }
